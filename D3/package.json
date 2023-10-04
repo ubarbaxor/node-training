@@ -1,0 +1,22 @@
+{
+  "name": "tp-web",
+  "version": "0.0.0",
+  "description": "TP jour 3 4.10.23",
+  "main": "index.mjs",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "nodemon --ignore 'last.config.json' -e 'mjs,html' index.mjs",
+    "test": ""
+  },
+  "author": "Antoine Barbaroux (ubarbaxor)",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cookie-session": "^2.0.0",
+    "express": "^4.18.2",
+    "nunjucks": "^3.2.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
