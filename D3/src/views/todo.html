@@ -2,11 +2,27 @@
 <html>
 
 <head>
-    <title>D3 Todo {{user}}</title>
+    <title>D3 Todo list</title>
 </head>
 
 <body>
+    <h1>{{ user }}'s Todo List</h1>
+    <form action="/todo" method="post">
+        <input type="hidden" name="author" value="{{ user }}" />
+        <input type="text" name="content" placeholder="content" />
+
+        <input type="submit" value="TODO" />
+    </form>
+    {% if todos.length %}
     {{todos.length}} todos.
+    <ul>
+        {% for todo in todos %}
+        <li>{{ todo.content }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No todos.</p>
+    {% endif %}
 </body>
 
 </html>

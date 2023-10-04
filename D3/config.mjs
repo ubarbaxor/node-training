@@ -25,9 +25,10 @@ const config = {
     },
     db: {
         host: NODE_DB_HOST || 'localhost',
-        port: NODE_DB_PORT || 5432,
-        username: NODE_DB_USER || 'local',
-        password: NODE_DB_PASS || 's0s3cur3',
+        port: NODE_DB_PORT || 27017,
+        name: 'test',
+        // username: NODE_DB_USER || 'local',
+        // password: NODE_DB_PASS || 's0s3cur3',
     }
 }
 

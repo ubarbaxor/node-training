@@ -5,6 +5,17 @@ import cookieSession from "cookie-session"
 
 import config from "./config.mjs"
 
+// DB Setup
+import Mongoose from "mongoose"
+const { host: dbHost, port: dbPort, name: dbName } = config.db
+const dbUrl = `mongodb://${dbHost}:${dbPort}/${dbName}`
+Mongoose.connect(dbUrl)
+    .then(() => console.log(`Connected to MongoDB at ${dbHost}:${dbPort}`))
+    .catch(err => console.error(err))
+
+import todos from "./src/models/todos.mjs"
+import users from "./src/models/users.mjs"
+
 import loggingMiddleware from "./src/middleware/logger.mjs"
 
 import authenticationMiddleware, {
@@ -14,19 +25,6 @@ import authenticationMiddleware, {
 
 import defaultRoute from "./src/routes/default.mjs"
 import echoParam from "./src/routes/echoParam.mjs"
-
-const data = {
-    users: [
-        { login: 'admin', pass: 'admin' },
-        { login: 'user', pass: 'user' }
-    ],
-    todos: [
-        {
-            author: 'user',
-            content: 'exercise'
-        }
-    ]
-}
 
 const { host: serverHost, port: serverPort } = config.server
 const serverUrl = `http://${serverHost}:${serverPort}`
@@ -65,17 +63,18 @@ app.get('/login', (req, res) => {
 app.post('/login', (req, res) => {
     const { username, password } = req.body
 
-    const user = data.users.find(user => user.login === username)
+    users.findOne({ login: username })
+        .then(user => {
+            if (user && password === user.pass) {
+                console.log(`User ${username} logged in`)
 
-    if (user && password === user.pass) {
-        console.log(`User ${username} logged in`)
+                req.session.user = username
 
-        req.session.user = username
+                return res.status(200).redirect('/todo')
+            }
 
-        return res.status(200).redirect('/todo')
-    }
-
-    res.status(401).redirect('/login')
+            res.status(401).redirect('/login')
+        })
 })
 
 app.get('/register', (req, res) => {
@@ -84,30 +83,64 @@ app.get('/register', (req, res) => {
 app.post('/register', (req, res) => {
     const { username, password } = req.body
 
-    const user = data.users.find(user => user.login === username)
+    const found = users.findOne({ login: username })
 
-    if (user) {
-        return res.status(400).redirect('/login')
-    }
-
-    data.users.push({ login: username, pass: password })
-
-    console.log(`User ${username} registered`)
-
-    res.status(200).redirect('/login')
+    found.then(user => {
+        if (!user) {
+            return users.create({ login: username, pass: password })
+        } else {
+            console.error(`User ${username} already exists`)
+            res.status(401).redirect('/register')
+        }
+    }).then(created => {
+        console.log(`User ${username} registered`)
+        console.log(created)
+        res.status(200).redirect('/login')
+    }).catch(err => {
+        console.error(err)
+        res.status(500).redirect('/register')
+    })
 })
 
-app.get('/todo', (req, res) => {
+const authRouter = Express.Router()
+authRouter.use((req, res, next) => {
+    console.log('Auth router')
     if (req.auth) {
-        return res.render('todo.html', {
-            user: req.auth.user,
-            todos: data.todos
-                .filter(todo => todo.author === req.auth.user)
-        })
+        return next()
     }
 
     res.status(401).redirect('/login')
 })
+
+authRouter.get('/todo', (req, res) => {
+    if (req.auth) {
+        todos.find({ author: req.auth.user })
+            .then(todos => {
+                res.render('todo.html', {
+                    user: req.auth.user,
+                    todos
+                })
+            })
+    }
+})
+authRouter.post('/todo', (req, res) => {
+    const { author, content } = req.body
+    const { user } = req.auth
+
+    if (user) {
+        console.log(`User ${user} adds todo: ${content}`)
+        todos.create({ author, content })
+            .then(() => res.status(200).redirect('/todo'))
+    }
+})
+
+authRouter.use('/logout', (req, res) => {
+    console.log(`User ${req.auth.user} logged out`)
+    req.session = null
+
+    res.status(200).redirect('/login')
+})
+app.use(authRouter)
 
 app.use(defaultRoute)
 
