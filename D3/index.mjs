@@ -21,7 +21,10 @@ const data = {
         { login: 'user', pass: 'user' }
     ],
     todos: [
-        { content: 'exercise' }
+        {
+            author: 'user',
+            content: 'exercise'
+        }
     ]
 }
 
@@ -41,7 +44,7 @@ app.use(loggingMiddleware)
 
 app.use(cookieSession({
     name: 'session',
-    keys: [/* secret keys */],
+    keys: ['super secret', 'so secure'],
 
     // Cookie Options
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -66,6 +69,8 @@ app.post('/login', (req, res) => {
 
     if (user && password === user.pass) {
         console.log(`User ${username} logged in`)
+
+        req.session.user = username
 
         return res.status(200).redirect('/todo')
     }
@@ -93,7 +98,15 @@ app.post('/register', (req, res) => {
 })
 
 app.get('/todo', (req, res) => {
-    res.render('todo.html')
+    if (req.auth) {
+        return res.render('todo.html', {
+            user: req.auth.user,
+            todos: data.todos
+                .filter(todo => todo.author === req.auth.user)
+        })
+    }
+
+    res.status(401).redirect('/login')
 })
 
 app.use(defaultRoute)

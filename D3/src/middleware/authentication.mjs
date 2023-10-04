@@ -1,11 +1,9 @@
 export default (request, response, next) => {
-    if (request.query.accessToken && request.query.accessToken !== '121234') {
-        return response.status(401).end('Invalid token')
-    }
-
-    if (request.query.accessToken === '121234') {
-        request.auth = { authenticated: true }
-        return next()
+    if (request.session?.user) {
+        request.auth = {
+            authenticated: true,
+            user: request.session.user,
+        }
     }
 
     return next()
